@@ -84,9 +84,11 @@ jobs:
         id: cov-check-change
         run: |
           PREVIOUS_COVERAGE="$(grep https://img.shields.io/badge/coverage- README.md | awk -F- '{print $2}' | awk -F% '{print $1}')%"
+          CURRENT_COVERAGE=${{ needs.test.outputs.COVERAGE }}
           echo $PREVIOUS_COVERAGE
+          echo $CURRENT_COVERAGE
           echo "::set-output name=PREVIOUS_COVERAGE::PREVIOUS_COVERAGE"
-          echo "::set-output name=CURRENT_COVERAGE::${{ needs.test.outputs.COVERAGE }}"
+          echo "::set-output name=CURRENT_COVERAGE::CURRENT_COVERAGE"
 
       - name: Commit and Push
         if: ${{ steps.cov-check-change.outputs.PREVIOUS_COVERAGE }} != ${{ steps.cov-check-change.outputs.CURRENT_COVERAGE }}
