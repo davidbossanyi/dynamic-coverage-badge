@@ -60,8 +60,11 @@ jobs:
           make test-integration
 
       - name: Save Code Coverage
+        id: coverage
         run: |
-          echo "::set-output name=COVERAGE::$COVERAGE=$( poetry run pytest --cov=. | grep TOTAL | awk '{print $4}' )"
+          COVERAGE="$( poetry run pytest --cov=. | grep TOTAL | awk '{print $4}' )"
+          echo $COVERAGE
+          echo "::set-output name=COVERAGE::$COVERAGE"
 
   coverage-badge:
     name: Update Coverage Badge
