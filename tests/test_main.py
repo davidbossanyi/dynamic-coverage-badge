@@ -21,4 +21,4 @@ def test_function_five() -> None:
 
 @pytest.mark.integration
 def test_function_six() -> None:
-    assert main.function_seven() == 7
+    assert main.function_six() == 6
