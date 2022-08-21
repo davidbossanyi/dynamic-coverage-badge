@@ -78,7 +78,7 @@ jobs:
 
       - name: Modify README.md
         run: |
-          sed -i -E 's#https://img.shields.io/badge/coverage-([0-9]+\.?[0-9]*|\.[0-9]+)%#https://img.shields.io/badge/coverage-${{ needs.test.outputs.COVERAGE }}%#g' README.md
+          sed -i -E 's#https://img.shields.io/badge/coverage-([0-9]+\.?[0-9]*|\.[0-9]+)%#https://img.shields.io/badge/coverage-${{ needs.test.outputs.COVERAGE }}#g' README.md
 
       - name: Commit and Push
         run: |
