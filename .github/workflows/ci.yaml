@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request: ~
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    outputs:
+      coverage: ${{ steps.coverage.outputs.COVERAGE }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - uses: actions/cache@v3
+        name: Cache Dependencies
+        with:
+          path: ~/.cache/pypoetry/virtualenvs
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+
+      - uses: actions/cache@v3
+        name: Cache Pre-Commit
+        with:
+          path: ~/.cache/pre-commit
+          key: ${{ runner.os }}-pre-commit-${{ hashFiles('**/.pre-commit-config.yaml') }}-${{ hashFiles('**/mypy.ini') }}-${{ hashFiles('**/.flake8') }}
+
+      - name: Install Poetry
+        run: |
+          python -m pip install --upgrade pip wheel
+          curl -sSL https://install.python-poetry.org | python -
+
+      - name: Install Dependencies
+        run: |
+          poetry install --no-interaction --no-ansi
+
+      - name: Lint
+        run: |
+          make lint
+
+      - name: Unit Tests
+        run: |
+          make test-unit
+
+      - name: Integration Tests
+        run: |
+          make test-integration
+
+      - name: Save Code Coverage
+        run: |
+          echo "::set-output name=COVERAGE::$COVERAGE=$( poetry run pytest --cov=. | grep TOTAL | awk '{print $4}' )"
+
+  coverage-badge:
+    name: Update Coverage Badge
+    needs: [test]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    if: ${{ ( github.head_ref || github.ref_name ) == 'main' }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Modify README.md
+        run: |
+          sed -i -E 's#https://img.shields.io/badge/coverage-([0-9]+\.?[0-9]*|\.[0-9]+)%#https://img.shields.io/badge/coverage-${{ needs.test.outputs.COVERAGE }}%#g' README.md
+
+      - name: Commit and Push
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git status
+          git add README.md
+          git status
+          git commit -m "Update coverage badge"
+          git push
+
+  dependabot-automerge:
+    name: Dependabot Auto Merge
+    needs: [test]
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    if: ${{ github.actor == 'dependabot[bot]' && ( github.head_ref || github.ref_name ) != 'main' }}
+    steps:
+      - name: Fetch Dependabot Metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v1.3.3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve Dependabot PR
+        run: gh pr review --approve "$PR_URL"
+        if: ${{ (steps.metadata.outputs.package-ecosystem == 'pip' && steps.metadata.outputs.update-type != 'version-update:semver-major') || steps.metadata.outputs.package-ecosystem != 'pip' }}
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge Dependabot PR
+        if: ${{ (steps.metadata.outputs.package-ecosystem == 'pip' && steps.metadata.outputs.update-type != 'version-update:semver-major') || steps.metadata.outputs.package-ecosystem != 'pip' }}
+        run: gh pr merge --auto --squash "$PR_URL" || echo "Merge conflict caused failure, waiting for dependabot to rebase"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
