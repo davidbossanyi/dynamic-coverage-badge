@@ -85,21 +85,22 @@ jobs:
         run: |
           PREVIOUS_COVERAGE="$(grep https://img.shields.io/badge/coverage- README.md | awk -F- '{print $2}' | awk -F% '{print $1}')%"
           CURRENT_COVERAGE=${{ needs.test.outputs.COVERAGE }}
-          echo $PREVIOUS_COVERAGE
-          echo $CURRENT_COVERAGE
+          echo "old coverage = $PREVIOUS_COVERAGE"
+          echo "new coverage = $CURRENT_COVERAGE"
           echo "::set-output name=PREVIOUS_COVERAGE::PREVIOUS_COVERAGE"
           echo "::set-output name=CURRENT_COVERAGE::CURRENT_COVERAGE"
 
       - name: Commit and Push
-        if: ${{ steps.cov-check-change.outputs.PREVIOUS_COVERAGE }} != ${{ steps.cov-check-change.outputs.CURRENT_COVERAGE }}
         run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git status
-          git add README.md
-          git status
-          git commit -m "Update coverage badge"
-          git push
+          if [[ ${{ steps.cov-check-change.outputs.PREVIOUS_COVERAGE }} -ne ${{ steps.cov-check-change.outputs.CURRENT_COVERAGE }} ]]; then
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git status
+            git add README.md
+            git status
+            git commit -m "Update coverage badge"
+            git push
+          fi
 
   dependabot-automerge:
     name: Dependabot Auto Merge
