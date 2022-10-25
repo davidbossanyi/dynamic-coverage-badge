@@ -7,7 +7,7 @@ authors = ["David Bossanyi"]
 [tool.poetry.dependencies]
 python = "^3.10, <3.11"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
 pre-commit = "^2.20.0"
 black = "^22.10.0"
@@ -18,7 +18,7 @@ coverage = "^6.5.0"
 pytest-cov = "^4.0.0"
 
 [build-system]
-requires = ["poetry-core>=1.1.0"]
+requires = ["poetry-core>=1.2.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
